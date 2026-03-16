@@ -1,0 +1,23 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-gray-50 text-slate;
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-white rounded-xl shadow-sm border border-gray-100 p-6;
+  }
+
+  .btn-primary {
+    @apply bg-teal text-white font-semibold px-6 py-3 rounded-lg hover:bg-teal-light transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-secondary {
+    @apply bg-white text-teal border border-teal font-semibold px-6 py-3 rounded-lg hover:bg-teal-bg transition-colors duration-150;
+  }
+}
