@@ -186,7 +186,7 @@ function buildRecommendations(answers: Answers, score: number): Recommendation[]
   recs.push({
     priority: score > 60 ? "Critical" : "Medium",
     title: "Activate Health Check Scout — Continuous Protection",
-    body: "Health Check Scout monitors your Mac 24/7 across 28 security, backup, and performance categories. You receive a monthly report, real-time alerts, and a dedicated IT advisor. Plans start at R 2,999/year.",
+    body: "Health Check Scout monitors your Mac 24/7 across 28 security, backup, and performance categories. You receive a monthly report, real-time alerts, and a dedicated IT advisor. Plans start at R 4,599/year (excl. VAT) for one doctor — no tailored quote required in most cases.",
   });
 
   return recs;

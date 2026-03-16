@@ -170,7 +170,8 @@ export default function SummaryPage({ scoreResult, response, rawJson }: SummaryP
           28-phase continuous monitoring across security, backup, performance, and compliance.
           Monthly reports. Real-time alerts. Dedicated IT advisor.
         </p>
-        <div className="text-2xl font-bold text-za-green mb-4">R 2,999 / year</div>
+        <div className="text-2xl font-bold text-za-green mb-1">R 4,599 / year <span className="text-sm font-normal text-gray-400">excl. VAT</span></div>
+        <p className="text-xs text-gray-400 mb-4">1 doctor / 1 device — no tailored quote required in most cases</p>
         <a
           href="mailto:admin@zasupport.com?subject=Health Check Scout — Activation Request"
           className="inline-block bg-za-green text-navy font-bold px-6 py-3 rounded-lg hover:opacity-90 transition-opacity"
