@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import type { Answers, QuestionnaireResponse } from "@/lib/types";
 import { PAGES } from "@/lib/questions";
 import { calculateScore } from "@/lib/scoring";
@@ -10,18 +10,62 @@ import SummaryPage from "./SummaryPage";
 
 type SubmitState = "idle" | "submitting" | "done" | "error";
 
+const AUTOSAVE_KEY = "za-scout-questionnaire-draft-v1";
+
 export default function Questionnaire() {
   const [currentStep, setCurrentStep] = useState(0);
   const [answers, setAnswers] = useState<Answers>({});
   const [submitState, setSubmitState] = useState<SubmitState>("idle");
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [savedResponse, setSavedResponse] = useState<QuestionnaireResponse | null>(null);
+  const [hydrated, setHydrated] = useState(false);
+  const headingRef = useRef<HTMLHeadingElement>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = window.sessionStorage.getItem(AUTOSAVE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw) as { step?: number; answers?: Answers };
+        if (parsed.answers && typeof parsed.answers === "object") {
+          setAnswers(parsed.answers);
+        }
+        if (
+          typeof parsed.step === "number" &&
+          parsed.step >= 0 &&
+          parsed.step < PAGES.length
+        ) {
+          setCurrentStep(parsed.step);
+        }
+      }
+    } catch {
+      // corrupt draft — ignore
+    }
+    setHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated || typeof window === "undefined") return;
+    if (submitState === "done") return;
+    try {
+      window.sessionStorage.setItem(
+        AUTOSAVE_KEY,
+        JSON.stringify({ step: currentStep, answers })
+      );
+    } catch {
+      // storage full or disabled — ignore
+    }
+  }, [answers, currentStep, hydrated, submitState]);
+
+  useEffect(() => {
+    if (headingRef.current) {
+      headingRef.current.focus();
+    }
+  }, [currentStep]);
 
   const totalSteps = PAGES.length;
   const page = PAGES[currentStep];
-  const scoreResult = calculateScore(answers);
-
-  // ── Answer helpers ──────────────────────────────────────────────────────────
+  const scoreResult = useMemo(() => calculateScore(answers), [answers]);
 
   function setSingle(questionId: string, value: string) {
     setAnswers((prev) => ({ ...prev, [questionId]: value }));
@@ -30,11 +74,9 @@ export default function Questionnaire() {
   function toggleMulti(questionId: string, value: string) {
     setAnswers((prev) => {
       const current = (prev[questionId] as string[] | undefined) ?? [];
-      // If "none" is selected, clear all others
       if (value === "none") {
         return { ...prev, [questionId]: current.includes("none") ? [] : ["none"] };
       }
-      // Deselect "none" if selecting a real option
       const withoutNone = current.filter((v) => v !== "none");
       const exists = withoutNone.includes(value);
       return {
@@ -46,8 +88,6 @@ export default function Questionnaire() {
     });
   }
 
-  // ── Validation ──────────────────────────────────────────────────────────────
-
   function isPageValid(): boolean {
     for (const q of page.questions) {
       if (!q.required) continue;
@@ -57,8 +97,6 @@ export default function Questionnaire() {
     }
     return true;
   }
-
-  // ── Navigation ──────────────────────────────────────────────────────────────
 
   function handleNext() {
     if (currentStep < totalSteps - 1) {
@@ -75,8 +113,6 @@ export default function Questionnaire() {
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
   }
-
-  // ── Submit ──────────────────────────────────────────────────────────────────
 
   async function handleSubmit() {
     setSubmitState("submitting");
@@ -122,14 +158,18 @@ export default function Questionnaire() {
       const data = await res.json();
       setSavedResponse(data.response ?? payload);
       setSubmitState("done");
+      try {
+        window.sessionStorage.removeItem(AUTOSAVE_KEY);
+      } catch {
+        // ignore
+      }
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Submission failed. Please try again.";
+      const msg =
+        err instanceof Error ? err.message : "Submission failed. Please try again.";
       setSubmitError(msg);
       setSubmitState("error");
     }
   }
-
-  // ── Summary view ────────────────────────────────────────────────────────────
 
   if (submitState === "done" && savedResponse) {
     return (
@@ -141,19 +181,21 @@ export default function Questionnaire() {
     );
   }
 
-  // ── Form ────────────────────────────────────────────────────────────────────
-
   return (
     <div>
       <StepIndicator totalSteps={totalSteps} currentStep={currentStep} />
 
-      {/* Page header */}
       <div className="mb-6">
-        <h2 className="text-xl font-bold text-za-heading">{page.title}</h2>
+        <h2
+          ref={headingRef}
+          tabIndex={-1}
+          className="text-xl font-bold text-za-heading focus:outline-none"
+        >
+          {page.title}
+        </h2>
         <p className="text-sm text-mid mt-1">{page.subtitle}</p>
       </div>
 
-      {/* Questions */}
       <div className="space-y-6">
         {page.questions.map((question) => (
           <div key={question.id} className="card">
@@ -166,20 +208,19 @@ export default function Questionnaire() {
               )}
             </p>
 
-            {/* Text / Email */}
             {(question.type === "text" || question.type === "email") && (
               <input
                 type={question.type}
                 value={(answers[question.id] as string) ?? ""}
                 onChange={(e) => setSingle(question.id, e.target.value)}
                 placeholder={question.placeholder}
+                autoComplete={question.type === "email" ? "email" : "name"}
                 className="w-full border-2 border-gray-200 rounded-lg px-4 py-3 text-sm text-slate focus:outline-none focus:border-teal transition-colors"
               />
             )}
 
-            {/* Single select */}
             {question.type === "single" && question.options && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div role="radiogroup" aria-label={question.label} className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {question.options.map((opt) => (
                   <ChoiceButton
                     key={opt.value}
@@ -191,9 +232,8 @@ export default function Questionnaire() {
               </div>
             )}
 
-            {/* Multi select */}
             {question.type === "multi" && question.options && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div role="group" aria-label={question.label} className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {question.options.map((opt) => {
                   const selected =
                     Array.isArray(answers[question.id]) &&
@@ -202,6 +242,8 @@ export default function Questionnaire() {
                     <button
                       key={opt.value}
                       type="button"
+                      role="checkbox"
+                      aria-checked={selected}
                       onClick={() => toggleMulti(question.id, opt.value)}
                       className={[
                         "w-full text-left px-4 py-3 rounded-lg border-2 transition-all duration-150 flex items-center gap-3 group",
@@ -211,6 +253,7 @@ export default function Questionnaire() {
                       ].join(" ")}
                     >
                       <span
+                        aria-hidden="true"
                         className={[
                           "flex-shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center transition-colors",
                           selected
@@ -244,19 +287,21 @@ export default function Questionnaire() {
         ))}
       </div>
 
-      {/* Error message */}
       {submitState === "error" && submitError && (
-        <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+        <div
+          role="alert"
+          aria-live="polite"
+          className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700"
+        >
           {submitError}
         </div>
       )}
 
-      {/* Navigation */}
       <div className="flex items-center justify-between mt-8">
         <button
           type="button"
           onClick={handleBack}
-          disabled={currentStep === 0}
+          disabled={currentStep === 0 || submitState === "submitting"}
           className="btn-secondary disabled:opacity-30 disabled:cursor-not-allowed"
         >
           Back
@@ -269,7 +314,11 @@ export default function Questionnaire() {
         <button
           type="button"
           onClick={handleNext}
-          disabled={!isPageValid() || submitState === "submitting"}
+          disabled={
+            !isPageValid() ||
+            submitState === "submitting" ||
+            submitState === "done"
+          }
           className="btn-primary"
         >
           {submitState === "submitting"

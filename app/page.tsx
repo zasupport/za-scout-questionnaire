@@ -45,8 +45,8 @@ export default function Home() {
             064 529 5863
           </a>{" "}
           &bull;{" "}
-          <a href="mailto:admin@zasupport.com" className="hover:text-za-green transition-colors">
-            admin@zasupport.com
+          <a href="mailto:mary@zasupport.com" className="hover:text-za-green transition-colors">
+            mary@zasupport.com
           </a>{" "}
           &bull; 1 Hyde Park Lane, Hyde Park, Johannesburg
         </p>
