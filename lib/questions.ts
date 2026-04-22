@@ -21,6 +21,14 @@ export const PAGES: Page[] = [
         placeholder: "e.g. jane@example.com",
       },
       {
+        id: "popia_consent",
+        label: "Consent",
+        type: "consent",
+        required: true,
+        consentText:
+          "I consent to ZA Support processing the information I provide in this assessment to prepare a personalised risk report and contact me by email about the outcome. Processing is carried out in accordance with the Protection of Personal Information Act (Act 4 of 2013). I may request that my data is updated or removed at any time by emailing mary@zasupport.com.",
+      },
+      {
         id: "machine_type",
         label: "What type of Mac do you use?",
         type: "single",

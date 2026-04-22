@@ -92,6 +92,10 @@ export default function Questionnaire() {
     for (const q of page.questions) {
       if (!q.required) continue;
       const val = answers[q.id];
+      if (q.type === "consent") {
+        if (val !== "true") return false;
+        continue;
+      }
       if (!val || (Array.isArray(val) && val.length === 0)) return false;
       if (typeof val === "string" && val.trim() === "") return false;
     }
@@ -118,28 +122,31 @@ export default function Questionnaire() {
     setSubmitState("submitting");
     setSubmitError(null);
 
+    const str = (k: keyof Answers) => (answers[k] as string) ?? "";
+    const arr = (k: keyof Answers) => (answers[k] as string[]) ?? [];
     const payload: QuestionnaireResponse = {
-      name: (answers.name as string) ?? "",
-      email: (answers.email as string) ?? "",
-      machine_type: (answers.machine_type as string) ?? "",
-      mac_year: (answers.mac_year as string) ?? "",
-      macos_version: (answers.macos_version as string) ?? "",
-      filevault_enabled: (answers.filevault_enabled as string) ?? "",
-      backup_status: (answers.backup_status as string) ?? "",
-      last_backup: (answers.last_backup as string) ?? "",
-      security_software: (answers.security_software as string) ?? "",
-      data_types: (answers.data_types as string[]) ?? [],
-      public_wifi: (answers.public_wifi as string) ?? "",
-      sharing: (answers.sharing as string) ?? "",
-      priority_areas: (answers.priority_areas as string[]) ?? [],
-      it_management: (answers.it_management as string) ?? "",
-      past_issues: (answers.past_issues as string[]) ?? [],
-      security_warnings: (answers.security_warnings as string) ?? "",
-      repair_history: (answers.repair_history as string) ?? "",
-      business_use: (answers.business_use as string) ?? "",
-      client_data: (answers.client_data as string) ?? "",
-      popia_awareness: (answers.popia_awareness as string) ?? "",
-      audit_required: (answers.audit_required as string) ?? "",
+      name: str("name"),
+      email: str("email"),
+      machine_type: str("machine_type"),
+      mac_year: str("mac_year"),
+      macos_version: str("macos_version"),
+      filevault_enabled: str("filevault_enabled"),
+      backup_status: str("backup_status"),
+      last_backup: str("last_backup"),
+      security_software: str("security_software"),
+      data_types: arr("data_types"),
+      public_wifi: str("public_wifi"),
+      sharing: str("sharing"),
+      priority_areas: arr("priority_areas"),
+      it_management: str("it_management"),
+      past_issues: arr("past_issues"),
+      security_warnings: str("security_warnings"),
+      repair_history: str("repair_history"),
+      business_use: str("business_use"),
+      client_data: str("client_data"),
+      popia_awareness: str("popia_awareness"),
+      audit_required: str("audit_required"),
+      popia_consent: answers.popia_consent === "true",
       risk_score: scoreResult.score,
       risk_level: scoreResult.level,
     };
@@ -230,6 +237,23 @@ export default function Questionnaire() {
                   />
                 ))}
               </div>
+            )}
+
+            {question.type === "consent" && (
+              <label className="flex items-start gap-3 cursor-pointer group">
+                <input
+                  type="checkbox"
+                  checked={answers[question.id] === "true"}
+                  onChange={(e) =>
+                    setSingle(question.id, e.target.checked ? "true" : "")
+                  }
+                  aria-required={question.required}
+                  className="mt-1 w-5 h-5 flex-shrink-0 cursor-pointer accent-teal"
+                />
+                <span className="text-xs text-slate leading-relaxed">
+                  {question.consentText}
+                </span>
+              </label>
             )}
 
             {question.type === "multi" && question.options && (

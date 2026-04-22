@@ -1,4 +1,4 @@
-export type QuestionType = "text" | "email" | "single" | "multi";
+export type QuestionType = "text" | "email" | "single" | "multi" | "consent";
 
 export interface Option {
   label: string;
@@ -13,6 +13,7 @@ export interface Question {
   options?: Option[];
   required?: boolean;
   placeholder?: string;
+  consentText?: string;
 }
 
 export interface Page {
@@ -61,6 +62,7 @@ export interface QuestionnaireResponse {
   client_data: string;
   popia_awareness: string;
   audit_required: string;
+  popia_consent: boolean;
   risk_score: number;
   risk_level: string;
 }
