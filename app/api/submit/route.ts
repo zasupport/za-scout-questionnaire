@@ -36,19 +36,9 @@ const MAX_BODY_BYTES = 32_768;
 const RATE_LIMIT_MAX = 10;
 const RATE_LIMIT_WINDOW_SEC = 60;
 
-// ── Rate limiter: Upstash when configured, in-memory fallback otherwise ─────
-//
-// Tier 1 (preferred): @upstash/ratelimit + Upstash Redis REST
-//   - Cross-instance protection — a hostile actor cannot escape the limit by
-//     load-balancing across warm Lambdas.
-//   - Set env UPSTASH_REDIS_REST_URL + UPSTASH_REDIS_REST_TOKEN on Vercel
-//     (production + preview scopes) and cold starts will pick them up.
-//
-// Tier 2 (fallback): in-memory sliding window
-//   - Scope = single warm Lambda lifetime (~15 min on Vercel).
-//   - Useful burst protection for same-instance spray; does NOT protect
-//     cross-instance. Retained so the endpoint still behaves sanely if the
-//     Upstash config is missing at boot.
+// Two-tier rate limit.
+// Tier 1 (cross-instance): REST-backed sliding window when both env vars set.
+// Tier 2 (per-instance):  in-memory sliding window fallback.
 
 type RateCheck = {
   allowed: boolean;
